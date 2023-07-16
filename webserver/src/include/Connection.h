@@ -17,6 +17,7 @@ private:
     Channel *_connChannel;
 
     std::function<void(Socket*)> _deleteConnectionCallback;
+    std::function<void(Connection*)> _onConnectionCallback;
 
     // 读写缓冲区
     sds _readBuffer;
@@ -28,8 +29,9 @@ public:
 
     void echo();
 
-    void setDeleteConnectionCallback(std::function<void(Socket*)>);
-    void deleteConnection();
+    void SetDeleteConnectionCallback(std::function<void(Socket*)>);
+    void DeleteConnection();
+    void SetOnConnectionCallback(std::function<void(Connection*)> const &cb);
 };
 
 #endif  // _CONNECTION_H

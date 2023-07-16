@@ -58,7 +58,7 @@ void WebServer::handleConnection(Socket *sock)
         Connection *conn = new Connection(_subReactors[random], sock);
         // 设定删除连接回调函数
         std::function<void(Socket *)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
-        conn->setDeleteConnectionCallback(cb);
+        conn->SetDeleteConnectionCallback(cb);
         // 添加至Map
         _map[sock->getFd()] = conn;
     }
