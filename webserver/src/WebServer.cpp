@@ -51,16 +51,18 @@ void WebServer::start()
  */
 void WebServer::handleConnection(Socket *sock)
 {
-    if (sock->getFd() != -1)
+    if (sock->GetFd() != -1)
     {
         // 随机调度到一个Reactor执行
-        int random = sock->getFd() % _subReactors.size();
+        int random = sock->GetFd() % _subReactors.size();
         Connection *conn = new Connection(_subReactors[random], sock);
         // 设定删除连接回调函数
         std::function<void(Socket *)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
         conn->SetDeleteConnectionCallback(cb);
+        // 设定连接建立后用户自定义回调函数
+        conn->SetOnConnectionCallback(_on_connect_callback);
         // 添加至Map
-        _map[sock->getFd()] = conn;
+        _map[sock->GetFd()] = conn;
     }
 }
 
@@ -72,7 +74,7 @@ void WebServer::handleConnection(Socket *sock)
 void WebServer::deleteConnection(Socket *sock)
 {
     if (sock == nullptr) return;    // solve segmentation fault.--------wait for fix
-    int fd = sock->getFd();
+    int fd = sock->GetFd();
     if (fd != -1)
     {
         auto it = _map.find(fd);
@@ -83,4 +85,8 @@ void WebServer::deleteConnection(Socket *sock)
             delete conn;
         }
     }
+}
+
+void WebServer::OnConnect(std::function<void(Connection*)> const &cb) {
+    _on_connect_callback = cb;
 }

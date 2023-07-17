@@ -11,27 +11,56 @@
 
 class Connection
 {
+public:
+    enum State
+    {
+        Invalid = 1,
+        HandShaking,
+        Connected,
+        Closed,
+        Failed
+    };
+
+    Connection(EventLoop *, Socket *);
+    ~Connection();
+
+    void echo();
+
+    void SetDeleteConnectionCallback(std::function<void(Socket *)> const &cb);
+    void Close();
+    void SetOnConnectionCallback(std::function<void(Connection *)> const &cb);
+
+    State GetState();
+
+    void SetWriteBuffer(const char *str);
+    sds GetWriteBuffer();
+    sds GetReadBuffer();
+    Socket* GetSocket();
+
+    void Read();
+    void Write();
+
+    // 非阻塞读写实现: server use
+    void ReadNoBlocking();
+    void WriteNoBlocking();
+
+    // 阻塞读写实现: client use
+    void ReadBlocking();
+    void WriteBlocking();
+
 private:
     EventLoop *_loop;
     Socket *_sock;
     Channel *_connChannel;
 
-    std::function<void(Socket*)> _deleteConnectionCallback;
-    std::function<void(Connection*)> _onConnectionCallback;
+    std::function<void(Socket *)> _deleteConnectionCallback;
+    std::function<void(Connection *)> _onConnectionCallback;
 
     // 读写缓冲区
     sds _readBuffer;
     sds _writeBuffer;
-    
-public:
-    Connection(EventLoop*, Socket*);
-    ~Connection();
 
-    void echo();
-
-    void SetDeleteConnectionCallback(std::function<void(Socket*)>);
-    void DeleteConnection();
-    void SetOnConnectionCallback(std::function<void(Connection*)> const &cb);
+    State _state{State::Invalid};
 };
 
-#endif  // _CONNECTION_H
+#endif // _CONNECTION_H

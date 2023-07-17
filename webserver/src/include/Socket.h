@@ -1,7 +1,8 @@
 #ifndef _SOCKET_H
 #define _SOCKET_H
-#include <InetAddress.h>
 
+
+#include <InetAddress.h>
 
 class Socket
 {
@@ -12,14 +13,15 @@ public:
     Socket(int fd);
     ~Socket();
 
-    void bind(InetAddress* targetAddr);
-    void listen();
-    int accept(InetAddress* clientAddr);
-    void connect(InetAddress*);
+    void Bind(InetAddress* targetAddr);
+    void Listen();
+    int Accept(InetAddress* clientAddr);
+    void Connect(InetAddress*);
 
-    void setNonBlocking();
+    void SetNonBlocking();
+    bool IsNoBlocking();
 
-    int getFd();
+    int GetFd();
 };
 
 #endif  // _SOCKET_H
