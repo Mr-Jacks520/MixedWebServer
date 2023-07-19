@@ -211,5 +211,12 @@ void Connection::SetOnConnectionCallback(std::function<void(Connection *)> const
 {
     _onConnectionCallback = cb;
     _connChannel->setReadCallback([this]()
-                                  { _onConnectionCallback(this); });
+                                  {
+                                    // transfer data to read buffer 
+                                    this->Read();
+                                    if (this->GetState() == Connection::State::Closed) {
+                                        this->Close();
+                                        return;
+                                    }
+                                    _onConnectionCallback(this); });
 }

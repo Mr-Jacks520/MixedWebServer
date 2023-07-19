@@ -21,16 +21,17 @@ public:
     ~Channel();
 
     void enableReading();
+    void EnableWriting();
     void useET();
     uint32_t getEvents();
-    void setRevents(uint32_t);
-    uint32_t getRevents();
+    void SetRevents(uint32_t);
+    uint32_t GetRevents();
     bool isInPoll();
     void setInPoll();
     int getFd();
 
-    void setReadCallback(std::function<void()>);
-    void setWriteCallback(std::function<void()>);
+    void setReadCallback(std::function<void()> const &cb);
+    void setWriteCallback(std::function<void()> const &cb);
     void handleEvent();
 };
 
