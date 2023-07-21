@@ -7,6 +7,9 @@
 #include <functional>
 #include <sds.h>
 
+#include "HttpRequest.h"
+#include "HttpResponse.h"
+
 #define BUFFER_SIZE 1024
 
 class Connection
@@ -35,7 +38,7 @@ public:
     void SetWriteBuffer(const char *str);
     sds GetWriteBuffer();
     sds GetReadBuffer();
-    Socket* GetSocket();
+    Socket *GetSocket();
 
     void Read();
     void Write();
@@ -47,6 +50,8 @@ public:
     // 阻塞读写实现: client use
     void ReadBlocking();
     void WriteBlocking();
+
+    void SetSrcDir(const char *dir);
 
 private:
     EventLoop *_loop;
@@ -61,6 +66,13 @@ private:
     sds _writeBuffer;
 
     State _state{State::Invalid};
+
+    // http response source directory
+    std::string _srcDir;
+
+    // http service support
+    HttpRequest *_request;
+    HttpResponse *_response;
 };
 
 #endif // _CONNECTION_H

@@ -1,13 +1,14 @@
 #ifndef _WEBSERVER_H
 #define _WEBSERVER_H
 
-#include <Socket.h>
-#include <Acceptor.h>
-#include <Connection.h>
-#include <Log.h>
 #include <vector>
 #include <map>
-#include <ThreadPool.h>
+
+#include "Socket.h"
+#include "Acceptor.h"
+#include "Connection.h"
+#include "Log.h"
+#include "ThreadPool.h"
 
 class EventLoop;
 class Channel;
@@ -21,6 +22,8 @@ private:
     Acceptor *_acceptor;
     std::map<int, Connection*> _map;
 
+    char *_srcDir;
+
     std::function<void(Connection*)> _on_connect_callback;
     
     void handleConnection(Socket*);
@@ -30,7 +33,7 @@ private:
     // void handleReadEvent(int sockFd);
 
 public:
-    explicit WebServer(uint16_t port, bool openLog = true, int logLevel = 1, int logSize = 0);
+    explicit WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog = true, int logLevel = 1, int logSize = 0);
     ~WebServer();
 
     void start();

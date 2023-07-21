@@ -7,10 +7,11 @@
 #include <EventLoop.h>
 #include <Channel.h>
 
-WebServer::WebServer(uint16_t port, bool openLog, int logLevel, int logSize)
+WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog, int logLevel, int logSize)
 {
     // log initialize
-    if (openLog) {
+    if (openLog)
+    {
         Log::getInstance()->init(logLevel, "./log", ".logg", logSize);
         LOG_DEBUG("Logger start...");
     }
@@ -21,15 +22,24 @@ WebServer::WebServer(uint16_t port, bool openLog, int logLevel, int logSize)
 
     int size = std::thread::hardware_concurrency();
     _pool = new ThreadPool(size);
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
+    {
         _subReactors.push_back(new EventLoop());
     }
 
     // per loop per thread
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
+    {
         std::function<void()> sub_loop = std::bind(&EventLoop::loop, _subReactors[i]);
         _pool->addTask(sub_loop);
     }
+
+    // get http resourse dir
+    _srcDir = getcwd(_srcDir, 256);
+    strncat(_srcDir, "/resources/", 16);
+
+    // sql pool initialize
+    SqlPool::GetInstance()->Init(dbHost, dbPort, dbUser, dbPwd, dbName, connPoolNums);
 }
 
 WebServer::~WebServer()
@@ -73,7 +83,8 @@ void WebServer::handleConnection(Socket *sock)
  */
 void WebServer::deleteConnection(Socket *sock)
 {
-    if (sock == nullptr) return;    // solve segmentation fault.--------wait for fix
+    if (sock == nullptr)
+        return; // solve segmentation fault.--------wait for fix
     int fd = sock->GetFd();
     if (fd != -1)
     {
@@ -87,6 +98,7 @@ void WebServer::deleteConnection(Socket *sock)
     }
 }
 
-void WebServer::OnConnect(std::function<void(Connection*)> const &cb) {
+void WebServer::OnConnect(std::function<void(Connection *)> const &cb)
+{
     _on_connect_callback = cb;
 }

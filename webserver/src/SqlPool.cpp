@@ -32,6 +32,7 @@ void SqlPool::Init(const char* host, unsigned int port, const char* user, const 
 
     this->_MAXCONN = maxconn;
     sem_init(&_sems, 0, maxconn);
+    LOG_DEBUG("[MYSQL]: Pool start.");
 }
 
 MYSQL* SqlPool::GetConn() {

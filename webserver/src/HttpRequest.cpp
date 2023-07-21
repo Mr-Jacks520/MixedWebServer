@@ -186,6 +186,7 @@ void HttpRequest::_ParseFromUrlencoded()
         return;
 
     int i = 0, j = 0;
+    uint8_t num = 0;
     std::string key, value;
     int n = _request_body.size();
 
@@ -204,7 +205,7 @@ void HttpRequest::_ParseFromUrlencoded()
             break;
         case '%':
             // handle some control chararter
-            uint8_t num = ConvertHex(_request_body[i + 1]) * 16 + ConvertHex(_request_body[i + 2]);
+            num = ConvertHex(_request_body[i + 1]) * 16 + ConvertHex(_request_body[i + 2]);
             _request_body[i + 2] = num % 10;
             _request_body[i + 1] = num / 10;
             i += 2;

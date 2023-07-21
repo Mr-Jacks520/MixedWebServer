@@ -18,6 +18,10 @@ Connection::Connection(EventLoop *loop, Socket *sock) : _loop(loop), _sock(sock)
     _readBuffer = sdsempty();
     _writeBuffer = sdsempty();
     _state = State::Connected;
+
+    // HTTP service initialize
+    _request = new HttpRequest();
+    _response = new HttpResponse();
 }
 
 Connection::~Connection()
@@ -219,4 +223,8 @@ void Connection::SetOnConnectionCallback(std::function<void(Connection *)> const
                                         return;
                                     }
                                     _onConnectionCallback(this); });
+}
+
+void Connection::SetSrcDir(const char* dir) {
+    _srcDir = std::string(dir);
 }

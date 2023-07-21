@@ -9,7 +9,6 @@
 #include <algorithm>
 
 #include <SqlRAII.h>
-#include <SqlPool.h>
 #include <Log.h>
 
 class HttpRequest
@@ -22,11 +21,9 @@ public:
         BODY,
         FINISH
     };
-
-    HttpRequest() { Init(); };
-    ~HttpRequest() = default;
-
+    
     void Init();
+
     bool Parse(sds buf);
 
     const std::string GetMethod();
@@ -34,6 +31,9 @@ public:
     const std::string GetPost(const char *key);
 
     bool IsKeepAlive();
+
+    HttpRequest() { Init(); };
+    ~HttpRequest() = default;
 
 private:
     bool _ParseRequestLine(const std::string &line);
