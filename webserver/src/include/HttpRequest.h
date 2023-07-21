@@ -1,11 +1,12 @@
 #ifndef _HTTPREQUEST_H
 #define _HTTPREQUEST_H
 
-#include <string>
+#include <string.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <regex>
 #include <mysql/mysql.h>
+#include <algorithm>
 
 #include <SqlRAII.h>
 #include <SqlPool.h>
@@ -43,11 +44,15 @@ private:
     void _ParsePost();
     void _ParseFromUrlencoded();
 
+    int ConvertHex(char c);
+
+    bool UserVerify(const std::string &username, const std::string &pwd, const bool isLogin);
+
     PARSE_STATE _state;
 
     std::string _request_method, _request_path, _http_version, _request_body;
     std::unordered_map<std::string, std::string> _request_headers;
-    std::unordered_multimap<std::string, std::string> _post;
+    std::unordered_map<std::string, std::string> _post;
 
     const static std::unordered_set<std::string> DEFAULT_HTMLS;
     const static std::unordered_map<std::string, uint8_t> HTML_TAGS;

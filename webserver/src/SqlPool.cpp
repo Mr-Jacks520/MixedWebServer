@@ -5,7 +5,8 @@ SqlPool::SqlPool(/* args */){}
 
 SqlPool::~SqlPool()
 {
-    this->ClosePool();
+    // solve problem: double free
+    // this->ClosePool();
 }
 
 SqlPool* SqlPool::GetInstance() {
