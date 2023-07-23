@@ -22,7 +22,7 @@ private:
     Acceptor *_acceptor;
     std::map<int, Connection*> _map;
 
-    char *_srcDir;
+    std::string _srcDir;
 
     std::function<void(Connection*)> _on_connect_callback;
     

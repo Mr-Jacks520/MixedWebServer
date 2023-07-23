@@ -32,8 +32,8 @@ Connection::~Connection()
     }
     delete _sock;
     // 释放
-    sdsfree(_readBuffer);
-    sdsfree(_writeBuffer);
+    // sdsfree(_readBuffer);
+    // sdsfree(_writeBuffer);
 }
 
 void Connection::echo()
@@ -96,7 +96,7 @@ void Connection::ReadNoBlocking()
         }
         else
         {
-            fprintf(stderr, "[non-blocking] ==> other errors occured in client fd %d: %m\n", sockFd);
+            fprintf(stderr, "[non-blocking] ==> other errors occured when read from client fd %d: %m\n", sockFd);
             _state = State::Closed;
             break;
         }
@@ -122,7 +122,7 @@ void Connection::ReadBlocking()
     }
     else if (read_bytes == -1)
     {
-        fprintf(stderr, "[blocking] ==> other errors occured in client fd %d: %m\n", sockFd);
+        fprintf(stderr, "[blocking] ==> other errors occured when read from client fd %d: %m\n", sockFd);
         _state = State::Closed;
     }
 }
@@ -144,12 +144,13 @@ void Connection::Write()
 void Connection::WriteNoBlocking()
 {
     int sockFd = _sock->GetFd();
-    sds buf = sdsdup(_writeBuffer);
-    size_t data_size = sdslen(buf);
+    fprintf(stderr, "[Connection]: sockFd: %d\n", sockFd);
+    // sds buf = sdsdup(_writeBuffer);
+    size_t data_size = sdslen(_writeBuffer);
     size_t data_left = data_size;
     while (data_left > 0)
     {
-        ssize_t write_bytes = write(sockFd, buf + data_size - data_left, data_left);
+        ssize_t write_bytes = write(sockFd, _writeBuffer + data_size - data_left, data_left);
         if (write_bytes == -1 && errno == EINTR)
         {
             fprintf(stderr, "[non-blocking] ==> continue writing...\n");
@@ -162,13 +163,13 @@ void Connection::WriteNoBlocking()
         }
         else if (write_bytes == -1)
         {
-            fprintf(stderr, "[non-blocking] ==> other error occured in client fd %d: %m.\n", sockFd);
+            fprintf(stderr, "[non-blocking] ==> other error occured when write to client fd %d: %m.\n", sockFd);
             _state = State::Closed;
             break;
         }
         data_left = data_size - write_bytes;
     }
-    sdsfree(buf);
+    // sdsfree(buf);
 }
 
 void Connection::WriteBlocking()
@@ -182,13 +183,13 @@ void Connection::WriteBlocking()
     }
 }
 
-void Connection::SetWriteBuffer(const char *str)
+void Connection::SetWriteBuffer(sds buf)
 {
     if (!sdslen(_writeBuffer))
     {
         sdsclear(_writeBuffer);
     }
-    _writeBuffer = sdscat(_writeBuffer, str);
+    _writeBuffer = buf;
 }
 
 sds Connection::GetWriteBuffer()
@@ -227,4 +228,16 @@ void Connection::SetOnConnectionCallback(std::function<void(Connection *)> const
 
 void Connection::SetSrcDir(const char* dir) {
     _srcDir = std::string(dir);
+}
+
+std::string Connection::GetSrcDir() {
+    return _srcDir;
+}
+
+HttpRequest* Connection::GetHTTPRequest() {
+    return _request;
+}
+
+HttpResponse* Connection::GetHTTPResponse() {
+    return _response;
 }

@@ -35,7 +35,7 @@ public:
 
     State GetState();
 
-    void SetWriteBuffer(const char *str);
+    void SetWriteBuffer(sds buf);
     sds GetWriteBuffer();
     sds GetReadBuffer();
     Socket *GetSocket();
@@ -52,6 +52,10 @@ public:
     void WriteBlocking();
 
     void SetSrcDir(const char *dir);
+    std::string GetSrcDir();
+
+    HttpRequest* GetHTTPRequest();
+    HttpResponse* GetHTTPResponse();
 
 private:
     EventLoop *_loop;

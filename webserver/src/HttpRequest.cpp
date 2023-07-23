@@ -92,7 +92,7 @@ bool HttpRequest::IsKeepAlive()
 
 bool HttpRequest::_ParseRequestLine(const std::string &line)
 {
-    std::regex pattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
+    std::regex pattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$", std::regex_constants::optimize);
     std::smatch subMatch;
     if (std::regex_match(line, subMatch, pattern))
     {
@@ -133,6 +133,9 @@ void HttpRequest::_ParsePath()
     if (_request_path == "/")
     {
         _request_path = "/index.html";
+    }
+    else if(_request_path == "/facvicon.ico") {
+        _request_path = "/facvicon.ico";
     }
     else
     {

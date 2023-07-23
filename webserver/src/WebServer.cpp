@@ -7,6 +7,9 @@
 #include <EventLoop.h>
 #include <Channel.h>
 
+#define PROJECT_NAME "/webserver"
+#define RESOURCES_DIR "/resources/"
+
 WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog, int logLevel, int logSize)
 {
     // log initialize
@@ -35,8 +38,13 @@ WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPor
     }
 
     // get http resourse dir
-    _srcDir = getcwd(_srcDir, 256);
-    strncat(_srcDir, "/resources/", 16);
+    std::unique_ptr<char> tmp(nullptr);
+    tmp.reset(getcwd(tmp.get(), 256));
+    char *index = std::search(tmp.get(), tmp.get() + strlen(tmp.get()), PROJECT_NAME, PROJECT_NAME + 10);
+    _srcDir.assign(tmp.get(), index);
+    _srcDir.append(PROJECT_NAME + std::string(RESOURCES_DIR));
+
+    LOG_DEBUG("html resources: %s", _srcDir.c_str());
 
     // sql pool initialize
     SqlPool::GetInstance()->Init(dbHost, dbPort, dbUser, dbPwd, dbName, connPoolNums);
@@ -65,12 +73,15 @@ void WebServer::handleConnection(Socket *sock)
     {
         // 随机调度到一个Reactor执行
         int random = sock->GetFd() % _subReactors.size();
+        fprintf(stderr, "[Webserver]: sockFd: %d\n", sock->GetFd());
         Connection *conn = new Connection(_subReactors[random], sock);
         // 设定删除连接回调函数
         std::function<void(Socket *)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
         conn->SetDeleteConnectionCallback(cb);
         // 设定连接建立后用户自定义回调函数
         conn->SetOnConnectionCallback(_on_connect_callback);
+        // 初始化HTTP资源location
+        conn->SetSrcDir(_srcDir.c_str());
         // 添加至Map
         _map[sock->GetFd()] = conn;
     }
