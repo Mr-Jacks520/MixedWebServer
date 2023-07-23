@@ -8,25 +8,21 @@ class SqlRAII
 private:
     SqlPool *_sqlpool;
     MYSQL *_sql;
+
 public:
-    SqlRAII(MYSQL **sql, SqlPool *pool);
-    ~SqlRAII();
-};
-
-SqlRAII::SqlRAII(MYSQL **sql, SqlPool *pool)
-{
-    assert(pool);
-    *sql = pool->GetConn();
-    _sqlpool = pool;
-    _sql = *sql;
-}
-
-SqlRAII::~SqlRAII()
-{
-    if (_sql) {
-        _sqlpool->FreeConn(_sql);
+    SqlRAII(MYSQL **sql, SqlPool *pool)
+    {
+        assert(pool);
+        *sql = pool->GetConn();
+        _sqlpool = pool;
+        _sql = *sql;
     }
-}
-
-
-#endif  // _SQLRAII_H
+    ~SqlRAII()
+    {
+        if (_sql)
+        {
+            _sqlpool->FreeConn(_sql);
+        }
+    }
+};
+#endif // _SQLRAII_H

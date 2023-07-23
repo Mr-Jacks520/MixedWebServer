@@ -7,10 +7,14 @@
 #include <EventLoop.h>
 #include <Channel.h>
 
-WebServer::WebServer(uint16_t port, bool openLog, int logLevel, int logSize)
+#define PROJECT_NAME "/webserver"
+#define RESOURCES_DIR "/resources/"
+
+WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog, int logLevel, int logSize)
 {
     // log initialize
-    if (openLog) {
+    if (openLog)
+    {
         Log::getInstance()->init(logLevel, "./log", ".logg", logSize);
         LOG_DEBUG("Logger start...");
     }
@@ -21,15 +25,29 @@ WebServer::WebServer(uint16_t port, bool openLog, int logLevel, int logSize)
 
     int size = std::thread::hardware_concurrency();
     _pool = new ThreadPool(size);
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
+    {
         _subReactors.push_back(new EventLoop());
     }
 
     // per loop per thread
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
+    {
         std::function<void()> sub_loop = std::bind(&EventLoop::loop, _subReactors[i]);
         _pool->addTask(sub_loop);
     }
+
+    // get http resourse dir
+    std::unique_ptr<char> tmp(nullptr);
+    tmp.reset(getcwd(tmp.get(), 256));
+    char *index = std::search(tmp.get(), tmp.get() + strlen(tmp.get()), PROJECT_NAME, PROJECT_NAME + 10);
+    _srcDir.assign(tmp.get(), index);
+    _srcDir.append(PROJECT_NAME + std::string(RESOURCES_DIR));
+
+    LOG_DEBUG("html resources: %s", _srcDir.c_str());
+
+    // sql pool initialize
+    SqlPool::GetInstance()->Init(dbHost, dbPort, dbUser, dbPwd, dbName, connPoolNums);
 }
 
 WebServer::~WebServer()
@@ -51,16 +69,21 @@ void WebServer::start()
  */
 void WebServer::handleConnection(Socket *sock)
 {
-    if (sock->getFd() != -1)
+    if (sock->GetFd() != -1)
     {
         // 随机调度到一个Reactor执行
-        int random = sock->getFd() % _subReactors.size();
+        int random = sock->GetFd() % _subReactors.size();
+        fprintf(stderr, "[Webserver]: sockFd: %d\n", sock->GetFd());
         Connection *conn = new Connection(_subReactors[random], sock);
         // 设定删除连接回调函数
         std::function<void(Socket *)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
-        conn->setDeleteConnectionCallback(cb);
+        conn->SetDeleteConnectionCallback(cb);
+        // 设定连接建立后用户自定义回调函数
+        conn->SetOnConnectionCallback(_on_connect_callback);
+        // 初始化HTTP资源location
+        conn->SetSrcDir(_srcDir.c_str());
         // 添加至Map
-        _map[sock->getFd()] = conn;
+        _map[sock->GetFd()] = conn;
     }
 }
 
@@ -71,8 +94,9 @@ void WebServer::handleConnection(Socket *sock)
  */
 void WebServer::deleteConnection(Socket *sock)
 {
-    if (sock == nullptr) return;    // solve segmentation fault.--------wait for fix
-    int fd = sock->getFd();
+    if (sock == nullptr)
+        return; // solve segmentation fault.--------wait for fix
+    int fd = sock->GetFd();
     if (fd != -1)
     {
         auto it = _map.find(fd);
@@ -83,4 +107,9 @@ void WebServer::deleteConnection(Socket *sock)
             delete conn;
         }
     }
+}
+
+void WebServer::OnConnect(std::function<void(Connection *)> const &cb)
+{
+    _on_connect_callback = cb;
 }
