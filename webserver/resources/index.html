@@ -3,12 +3,42 @@
 
 <head>
     <link rel="icon" type="image/x-icon" href="https://nextjs.org/favicon.ico">
+    <link rel="stylesheet" href="css/global.css">
     <title>MixedWebServer</title>
 </head>
 
 <body>
-    <h1>MixedWebServer</h1>
-    <footer>Copyright@hencejacki</footer>
+    <div class="container">
+        <div class="navbar">
+            <h1>MixedWebServer</h1>
+            <div class="navbar-link">
+                <a href="/">Home</a>
+                <a href="/">Image</a>
+                <a href="/">Video</a>
+                <a href="/">File</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <h2>Mixed But Simple</h2>
+            <form class="post-form">
+                <label>UserName:
+                    <input type="text" placeholder="username" />
+                </label>
+                <label>PassWord:&nbsp;
+                    <input type="password" placeholder="password" />
+                </label>
+                <div style="display: flex;justify-content: space-around;">
+                    <input type="submit" value="Login"/>
+                    <input type="submit" value="Register"/>
+                </div>
+            </form>
+        </div>
+
+        <div>
+            <footer>Copyright @ 2023-2024 <a href="https://github.com/Mr-Jacks520">hencejacki</a></footer>
+        </div>
+    </div>
 </body>
 
 </html>

@@ -8,7 +8,7 @@
 #include <Channel.h>
 
 #define PROJECT_NAME "/webserver"
-#define RESOURCES_DIR "/resources/"
+#define RESOURCES_DIR "/resources"
 
 WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog, int logLevel, int logSize)
 {

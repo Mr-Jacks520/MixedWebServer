@@ -12,7 +12,6 @@ const std::unordered_map<std::string, std::string> HttpResponse::SUFFIX_TYPE = {
     {".gif", "image/gif"},
     {".jpg", "image/jpeg"},
     {".jpeg", "image/jpeg"},
-    {".ico", "image/vnd.microsoft.icon"},
     {".au", "audio/basic"},
     {".mpeg", "video/mpeg"},
     {".mpg", "video/mpeg"},
