@@ -10,6 +10,8 @@
 #define PROJECT_NAME "/webserver"
 #define RESOURCES_DIR "/resources"
 
+#define TIME_CYCLE 1000
+
 WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog, int logLevel, int logSize)
 {
     // log initialize
@@ -44,7 +46,7 @@ WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPor
     _srcDir.assign(tmp.get(), index);
     _srcDir.append(PROJECT_NAME + std::string(RESOURCES_DIR));
 
-    LOG_DEBUG("html resources: %s", _srcDir.c_str());
+    LOG_DEBUG("html resources path: %s", _srcDir.c_str());
 
     // sql pool initialize
     SqlPool::GetInstance()->Init(dbHost, dbPort, dbUser, dbPwd, dbName, connPoolNums);
@@ -52,13 +54,31 @@ WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPor
 
 WebServer::~WebServer()
 {
+    delete _tim;
     delete _mainReactor;
     delete _acceptor;
+    if (!_subReactors.empty())
+    {
+        for (auto item : _subReactors)
+        {
+            delete item;
+        }
+    }
     delete _pool;
 }
 
 void WebServer::start()
 {
+    // timer setting
+    _tim = new Timer();
+
+    // add signal
+    _addSig(SIGALRM, _sig_handler, false);
+    _addSig(SIGTERM, _sig_handler, false);
+
+    // trigger SIGALRM cyclically
+    alarm(TIME_CYCLE);
+
     // 主Reactor循环
     _mainReactor->loop();
 }
@@ -73,7 +93,6 @@ void WebServer::handleConnection(Socket *sock)
     {
         // 随机调度到一个Reactor执行
         int random = sock->GetFd() % _subReactors.size();
-        fprintf(stderr, "[Webserver]: sockFd: %d\n", sock->GetFd());
         Connection *conn = new Connection(_subReactors[random], sock);
         // 设定删除连接回调函数
         std::function<void(Socket *)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
@@ -112,4 +131,26 @@ void WebServer::deleteConnection(Socket *sock)
 void WebServer::OnConnect(std::function<void(Connection *)> const &cb)
 {
     _on_connect_callback = cb;
+}
+
+void WebServer::_addSig(int sig, void(handler)(int), bool restart)
+{
+    struct sigaction act = {0};
+    act.sa_handler = handler;
+    if (restart)
+    {
+        act.sa_flags |= SA_RESTART;
+    }
+    sigfillset(&act.sa_mask);
+    errif(sigaction(sig, &act, nullptr) != -1, "sigaction failed");
+}
+
+void WebServer::_sig_handler(int sig)
+{
+    int save_errno = errno;
+    int msg = sig;
+
+    // send
+
+    errno = save_errno;
 }

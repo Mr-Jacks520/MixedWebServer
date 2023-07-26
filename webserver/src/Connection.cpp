@@ -144,8 +144,6 @@ void Connection::Write()
 void Connection::WriteNoBlocking()
 {
     int sockFd = _sock->GetFd();
-    fprintf(stderr, "[Connection]: sockFd: %d\n", sockFd);
-    // sds buf = sdsdup(_writeBuffer);
     size_t data_size = sdslen(_writeBuffer);
     size_t data_left = data_size;
     while (data_left > 0)
@@ -169,7 +167,6 @@ void Connection::WriteNoBlocking()
         }
         data_left = data_size - write_bytes;
     }
-    // sdsfree(buf);
 }
 
 void Connection::WriteBlocking()
