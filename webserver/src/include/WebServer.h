@@ -18,23 +18,27 @@ class WebServer
 {
 private:
     EventLoop *_mainReactor;
-    std::vector<EventLoop*> _subReactors;
+    std::vector<EventLoop *> _subReactors;
     ThreadPool *_pool;
 
     Acceptor *_acceptor;
-    std::map<int, Connection*> _map;
+    std::map<int, Connection *> _map;
 
     std::string _srcDir;
 
     Timer *_tim;
+    Channel *_timChannel;
+    static int _sv[2];
 
-    std::function<void(Connection*)> _on_connect_callback;
-    
-    void handleConnection(Socket*);
+    void _handleTimerEvent();
 
-    void deleteConnection(Socket*);
+    std::function<void(Connection *)> _on_connect_callback;
 
-    void _addSig(int sig, void (handler)(int), bool restart);
+    void handleConnection(Socket *);
+
+    void deleteConnection(size_t fd);
+
+    void _addSig(int sig, void(handler)(int), bool restart);
 
     static void _sig_handler(int sig);
 
@@ -46,6 +50,6 @@ public:
 
     void start();
 
-    void OnConnect(std::function<void(Connection*)> const &cb);
+    void OnConnect(std::function<void(Connection *)> const &cb);
 };
-#endif  // _WEBSERVER_H
+#endif // _WEBSERVER_H

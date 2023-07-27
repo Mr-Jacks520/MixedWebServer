@@ -26,3 +26,7 @@ void EventLoop::updateChannel(Channel *ch)
 {
     _ep->updateChannel(ch);
 }
+
+void EventLoop::Exit() {
+    _exit = true;
+}

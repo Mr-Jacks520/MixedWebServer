@@ -6,13 +6,14 @@
 
 #include "errs.h"
 #include "Log.h"
+#include "Socket.h"
 
 #define CLOCK std::chrono::high_resolution_clock
 #define MS std::chrono::milliseconds
 #define TimeStamp std::chrono::time_point<CLOCK>
-#define TimeoutCallback std::function<void()>
+#define TimeoutCallback std::function<void(size_t)>
 
-typedef struct TimerNode
+struct TimerNode
 {
     size_t id;
     TimeStamp expires;
@@ -33,11 +34,13 @@ public:
     Timer(/* args */);
     ~Timer();
 
-    void Add(size_t id, unsigned long timeout, TimeoutCallback &cb);    
+    void Add(size_t id, unsigned long timeout, TimeoutCallback const cb);    
 
     void Adjust(size_t id, unsigned long timeout);
 
     void Remove(size_t id);
+
+    void Tick();
 private:
     void _init();
 

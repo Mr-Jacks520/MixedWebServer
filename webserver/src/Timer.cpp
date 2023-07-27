@@ -21,21 +21,23 @@ void Timer::_init()
 {
     _head = (TimerNode *)malloc(sizeof(TimerNode));
     _tail = (TimerNode *)malloc(sizeof(TimerNode));
-    _head->next = _head->prev = _tail;
-    _tail->prev = _tail->next = _head;
+    _head->next = _tail;
+    _head->prev = nullptr;
+    _tail->prev = _head;
+    _tail->next = nullptr;
 }
 
-void Timer::Add(size_t id, unsigned long timeout, TimeoutCallback &cb)
+void Timer::Add(size_t id, unsigned long timeout, TimeoutCallback const cb)
 {
     // create new node
     struct TimerNode *node = (TimerNode *)malloc(sizeof(TimerNode));
     node->id = id;
     node->expires = CLOCK::now() + MS(timeout);
-    node->cb = std::move(cb);
+    node->cb = cb;
 
-    TimerNode *cur = _tail;
+    TimerNode *cur = _tail->prev;
     // iteration
-    while (cur->prev != _tail && cur > node)
+    while (cur != _head && *cur > *node)
     {
         cur = cur->prev;
     }
@@ -71,5 +73,23 @@ void Timer::Remove(size_t id)
             free(cur);
             return;
         }
+    }
+}
+
+void Timer::Tick() {
+    if (_head->next == _tail) {
+        return;
+    }
+    TimerNode* cur = _head->next;
+    while(cur != _tail) {
+        if (std::chrono::duration_cast<MS>(CLOCK::now() - cur->expires).count() < 0) {
+            break;
+        }
+        cur->cb(cur->id);
+        TimerNode *tmp = cur;
+        cur = cur->next;
+        tmp->prev->next = tmp->next;
+        tmp->next->prev = tmp->prev;
+        free(tmp);
     }
 }

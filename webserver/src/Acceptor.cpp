@@ -37,7 +37,7 @@ void Acceptor::acceptNewConnection() {
     InetAddress *client = new InetAddress();
     socklen_t len = client->_addr_len;
     int clientFd = _sock->Accept(client);
-    LOG_DEBUG("Somebody connected: %d  %s:%d.", clientFd, inet_ntoa(client->_addr.sin_addr), ntohs(client->_addr.sin_port));
+    LOG_DEBUG("client connected: %d  %s:%d.", clientFd, inet_ntoa(client->_addr.sin_addr), ntohs(client->_addr.sin_port));
     Socket *clientSock = new Socket(clientFd);
     // 设置非阻塞IO
     clientSock->SetNonBlocking();

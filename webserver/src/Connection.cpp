@@ -1,4 +1,5 @@
 #include <Connection.h>
+#include "Timer.h"
 #include <unistd.h>
 #include <cstring>
 #include <cerrno>
@@ -6,7 +7,7 @@
 #include <cassert>
 #include <errs.h>
 
-Connection::Connection(EventLoop *loop, Socket *sock) : _loop(loop), _sock(sock)
+Connection::Connection(EventLoop *loop, Socket *sock, Timer *tim) : _loop(loop), _sock(sock), _tim(tim)
 {
     if (_loop != nullptr)
     {
@@ -56,6 +57,8 @@ void Connection::Read()
 {
     assert(_state != State::Closed);
     sdsclear(_readBuffer);
+    // extent survive time
+    _tim->Adjust(_sock->GetFd(), 1000L);
     if (_sock->IsNoBlocking())
     {
         ReadNoBlocking();
@@ -130,6 +133,8 @@ void Connection::ReadBlocking()
 void Connection::Write()
 {
     assert(_state != State::Closed);
+    // extent survive time
+    _tim->Adjust(_sock->GetFd(), 1000L);
     if (_sock->IsNoBlocking())
     {
         WriteNoBlocking();
@@ -199,14 +204,14 @@ sds Connection::GetReadBuffer()
     return _readBuffer;
 }
 
-void Connection::SetDeleteConnectionCallback(std::function<void(Socket *)> const &cb)
+void Connection::SetDeleteConnectionCallback(std::function<void(size_t)> const &cb)
 {
     _deleteConnectionCallback = cb;
 }
 
 void Connection::Close()
 {
-    _deleteConnectionCallback(_sock);
+    _deleteConnectionCallback(_sock->GetFd());
 }
 
 void Connection::SetOnConnectionCallback(std::function<void(Connection *)> const &cb)

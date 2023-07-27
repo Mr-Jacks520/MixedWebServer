@@ -12,6 +12,7 @@
 
 #define BUFFER_SIZE 1024
 
+class Timer;
 class Connection
 {
 public:
@@ -24,12 +25,12 @@ public:
         Failed
     };
 
-    Connection(EventLoop *, Socket *);
+    Connection(EventLoop *, Socket *, Timer *);
     ~Connection();
 
     void echo();
 
-    void SetDeleteConnectionCallback(std::function<void(Socket *)> const &cb);
+    void SetDeleteConnectionCallback(std::function<void(size_t)> const &cb);
     void Close();
     void SetOnConnectionCallback(std::function<void(Connection *)> const &cb);
 
@@ -61,8 +62,9 @@ private:
     EventLoop *_loop;
     Socket *_sock;
     Channel *_connChannel;
+    Timer* _tim;
 
-    std::function<void(Socket *)> _deleteConnectionCallback;
+    std::function<void(size_t)> _deleteConnectionCallback;
     std::function<void(Connection *)> _onConnectionCallback;
 
     // 读写缓冲区

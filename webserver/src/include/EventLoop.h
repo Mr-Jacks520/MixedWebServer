@@ -14,6 +14,7 @@ public:
 
     void loop();
     void updateChannel(Channel*);
+    void Exit();
 };
 
 #endif  // _EVENTLOOP_H

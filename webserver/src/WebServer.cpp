@@ -10,7 +10,9 @@
 #define PROJECT_NAME "/webserver"
 #define RESOURCES_DIR "/resources"
 
-#define TIME_CYCLE 1000
+#define TIME_CYCLE 5
+
+int WebServer::_sv[2] = {0};
 
 WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPort, const char *dbUser, const char *dbPwd, const char *dbName, int connPoolNums, bool openLog, int logLevel, int logSize)
 {
@@ -25,6 +27,7 @@ WebServer::WebServer(uint16_t port, const char *dbHost, const unsigned int dbPor
     std::function<void(Socket *)> cb = std::bind(&WebServer::handleConnection, this, std::placeholders::_1);
     _acceptor->setConnectionCallback(cb);
 
+    // pool initialize
     int size = std::thread::hardware_concurrency();
     _pool = new ThreadPool(size);
     for (int i = 0; i < size; ++i)
@@ -69,15 +72,32 @@ WebServer::~WebServer()
 
 void WebServer::start()
 {
+    LOG_DEBUG("timerr setting...");
     // timer setting
     _tim = new Timer();
 
+    // sockpair
+    errif(socketpair(AF_UNIX, SOCK_STREAM, 0, _sv) == -1, "socketpair create failed");
+
+    // set write side to non-blocking
+    fcntl(_sv[1], F_SETFD, fcntl(_sv[1], F_GETFD) | O_NONBLOCK);
+
+    // set read aside to non-blocking
+    // fcntl(_sv[0], F_SETFD, O_NONBLOCK);
+
+    // add read aside to channel and epoll tree
+    _timChannel = new Channel(_mainReactor, _sv[0]);
+    std::function<void()> cb = std::bind(&WebServer::_handleTimerEvent, this);
+    _timChannel->setReadCallback(cb);
+    _timChannel->enableReading();
+    
+
     // add signal
     _addSig(SIGALRM, _sig_handler, false);
-    _addSig(SIGTERM, _sig_handler, false);
+    _addSig(SIGINT, _sig_handler, false);
 
     // trigger SIGALRM cyclically
-    alarm(TIME_CYCLE);
+    // alarm(TIME_CYCLE);
 
     // 主Reactor循环
     _mainReactor->loop();
@@ -93,9 +113,9 @@ void WebServer::handleConnection(Socket *sock)
     {
         // 随机调度到一个Reactor执行
         int random = sock->GetFd() % _subReactors.size();
-        Connection *conn = new Connection(_subReactors[random], sock);
+        Connection *conn = new Connection(_subReactors[random], sock, _tim);
         // 设定删除连接回调函数
-        std::function<void(Socket *)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
+        std::function<void(size_t)> cb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
         conn->SetDeleteConnectionCallback(cb);
         // 设定连接建立后用户自定义回调函数
         conn->SetOnConnectionCallback(_on_connect_callback);
@@ -103,6 +123,10 @@ void WebServer::handleConnection(Socket *sock)
         conn->SetSrcDir(_srcDir.c_str());
         // 添加至Map
         _map[sock->GetFd()] = conn;
+        // add to timer
+        // _tim->Add(sock->GetFd(), 1000, [this](size_t id){
+        //     this->deleteConnection(id);
+        // });
     }
 }
 
@@ -111,11 +135,11 @@ void WebServer::handleConnection(Socket *sock)
  *
  * @param sock 客户端套接字
  */
-void WebServer::deleteConnection(Socket *sock)
+void WebServer::deleteConnection(size_t fd)
 {
-    if (sock == nullptr)
-        return; // solve segmentation fault.--------wait for fix
-    int fd = sock->GetFd();
+    // if (sock == nullptr)
+    //     return; // solve segmentation fault.--------wait for fix
+    // int fd = sock->GetFd();
     if (fd != -1)
     {
         auto it = _map.find(fd);
@@ -142,7 +166,7 @@ void WebServer::_addSig(int sig, void(handler)(int), bool restart)
         act.sa_flags |= SA_RESTART;
     }
     sigfillset(&act.sa_mask);
-    errif(sigaction(sig, &act, nullptr) != -1, "sigaction failed");
+    errif(sigaction(sig, &act, nullptr) == -1, "sigaction failed");
 }
 
 void WebServer::_sig_handler(int sig)
@@ -150,7 +174,38 @@ void WebServer::_sig_handler(int sig)
     int save_errno = errno;
     int msg = sig;
 
-    // send
+    // send to write aside---------------> non-blocking optimize
+    send(_sv[1], (char*)&msg, 1, 0);
 
     errno = save_errno;
+}
+
+void WebServer::_handleTimerEvent() {
+    char signals[1024] = {0};
+    int ret = 0;
+    ret = recv(_sv[0], signals, sizeof(signals), 0);
+    if (ret <= 0) {
+        LOG_WARN("recv signals falied: %");
+        return;
+    }else {
+        for (int i = 0; i < ret; ++i) {
+            switch (signals[i])
+            {
+            case SIGALRM:
+                // timer tick to clear timeout node
+                fprintf(stderr, "tick clear\n");
+                _tim->Tick();
+                break;
+            case SIGINT:
+                // server exit
+                fprintf(stderr, "server exiting...\n");
+                _mainReactor->Exit();
+                return;
+            default:
+                break;
+            }
+        }
+    }
+    // trigger SIGALRM cyclically
+    // alarm(TIME_CYCLE);
 }
