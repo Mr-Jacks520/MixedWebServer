@@ -17,7 +17,6 @@ struct TimerNode
 {
     size_t id;
     TimeStamp expires;
-    TimeoutCallback cb;
 
     TimerNode *prev;
     TimerNode *next;
@@ -34,18 +33,22 @@ public:
     Timer(/* args */);
     ~Timer();
 
-    void Add(size_t id, unsigned long timeout, TimeoutCallback const cb);    
+    void Add(size_t id, unsigned long timeout);    
 
     void Adjust(size_t id, unsigned long timeout);
 
     void Remove(size_t id);
 
     void Tick();
+
+    void SetTimeoutCallback(TimeoutCallback const &cb);
 private:
     void _init();
 
     TimerNode *_head;
     TimerNode *_tail;
+
+    TimeoutCallback _timeoutCallback;
 };
 
 #endif // _TIMER_H

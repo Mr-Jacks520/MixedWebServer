@@ -9,6 +9,7 @@ const std::unordered_map<std::string, std::string> HttpResponse::SUFFIX_TYPE = {
     {".pdf", "application/pdf"},
     {".word", "application/nsword"},
     {".png", "image/png"},
+    {".ico", "image/vnd.microsoft.icon"},
     {".gif", "image/gif"},
     {".jpg", "image/jpeg"},
     {".jpeg", "image/jpeg"},

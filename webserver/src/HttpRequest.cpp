@@ -75,7 +75,8 @@ const std::string HttpRequest::GetPath()
 
 const std::string HttpRequest::GetPost(const char *key)
 {
-    if (_post.count(key) == 1) {
+    if (_post.count(key) == 1)
+    {
         return _post[key];
     }
     return "";
@@ -92,15 +93,18 @@ bool HttpRequest::IsKeepAlive()
 
 bool HttpRequest::_ParseRequestLine(const std::string &line)
 {
-    std::regex pattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$", std::regex_constants::optimize);
+    thread_local std::regex pattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$", std::regex_constants::optimize);
     std::smatch subMatch;
     if (std::regex_match(line, subMatch, pattern))
     {
-        _request_method = subMatch[1];
-        _request_path = subMatch[2];
-        _http_version = subMatch[3];
-        _state = HEADERS;
-        return true;
+        if (subMatch.size() >= 4)
+        {
+            _request_method = subMatch[1];
+            _request_path = subMatch[2];
+            _http_version = subMatch[3];
+            _state = HEADERS;
+            return true;
+        }
     }
     LOG_ERROR("RequestLine parse error");
     return false;
@@ -108,7 +112,7 @@ bool HttpRequest::_ParseRequestLine(const std::string &line)
 
 void HttpRequest::_ParseHeaders(const std::string &line)
 {
-    std::regex pattern("^([^:]*): ?(.*)$");
+    thread_local std::regex pattern("^([^:]*): ?(.*)$", std::regex_constants::optimize);
     std::smatch subMatch;
     if (std::regex_match(line, subMatch, pattern))
     {
@@ -133,9 +137,6 @@ void HttpRequest::_ParsePath()
     if (_request_path == "/")
     {
         _request_path = "/index.html";
-    }
-    else if(_request_path == "/facvicon.ico") {
-        _request_path = "/facvicon.ico";
     }
     else
     {
@@ -193,7 +194,8 @@ void HttpRequest::_ParseFromUrlencoded()
     std::string key, value;
     int n = _request_body.size();
 
-    while (i < n) {
+    while (i < n)
+    {
         switch (_request_body[i])
         {
         case '=':
@@ -201,7 +203,7 @@ void HttpRequest::_ParseFromUrlencoded()
             j = i + 1;
             break;
         case '&':
-            value = _request_body.substr(j, i- j);
+            value = _request_body.substr(j, i - j);
             j = i + 1;
             _post[key] = value;
             LOG_DEBUG("[%s]: [%s]", key, value);
@@ -222,7 +224,8 @@ void HttpRequest::_ParseFromUrlencoded()
         ++i;
     }
     // if encoding end up with empty value e.g: key=<Space>
-    if (_post.count(key) == 0 && j < i) {
+    if (_post.count(key) == 0 && j < i)
+    {
         value = _request_body.substr(j, i - j);
         _post[key] = value;
         LOG_DEBUG("Empty value for key: [%s]", key);
@@ -231,7 +234,8 @@ void HttpRequest::_ParseFromUrlencoded()
 
 bool HttpRequest::UserVerify(const std::string &username, const std::string &pwd, const bool isLogin)
 {
-    if (username == "" || pwd == "") return false;
+    if (username == "" || pwd == "")
+        return false;
     LOG_DEBUG("username: [%s], password: [%s]", username, pwd);
     MYSQL *sql = nullptr;
     SqlRAII(&sql, SqlPool::GetInstance());
@@ -243,29 +247,38 @@ bool HttpRequest::UserVerify(const std::string &username, const std::string &pwd
     bool flag = false;
     char SQL[256] = {0};
 
-    if (!isLogin) flag = true;
+    if (!isLogin)
+        flag = true;
 
     // query user
     snprintf(SQL, 256, "SELECT username, password FROM user WHERE username='%s' LIMIT 1", username);
 
-    if (mysql_query(sql, SQL)) {
+    if (mysql_query(sql, SQL))
+    {
         mysql_free_result(res);
         return false;
     }
 
     res = mysql_store_result(sql);
-    while((row = mysql_fetch_row(res))) {
+    while ((row = mysql_fetch_row(res)))
+    {
         LOG_DEBUG("MYSQL ROW: [%s], [%s]", row[0], row[1]);
         std::string passwd(row[1]);
 
-        if (isLogin) {
-            if (passwd == pwd) {
+        if (isLogin)
+        {
+            if (passwd == pwd)
+            {
                 flag = true;
-            }else {
+            }
+            else
+            {
                 flag = false;
                 LOG_DEBUG("[MYSQL]: pwd error");
             }
-        }else {
+        }
+        else
+        {
             flag = false;
             LOG_DEBUG("[MYSQL]: username used");
         }
@@ -274,12 +287,14 @@ bool HttpRequest::UserVerify(const std::string &username, const std::string &pwd
     mysql_free_result(res);
 
     // register
-    if (!isLogin && flag) {
+    if (!isLogin && flag)
+    {
         LOG_DEBUG("register");
         bzero(SQL, 256);
         snprintf(SQL, 256, "INSERT INTO user(username password) VALUES(%s, %s)", username, pwd);
         LOG_DEBUG("[MYSQL]: %s", SQL);
-        if (mysql_query(sql, SQL)) {
+        if (mysql_query(sql, SQL))
+        {
             LOG_DEBUG("[MYSQL]: insert error");
             return false;
         }

@@ -10,7 +10,7 @@
 #define PROJECT_NAME "/webserver"
 #define RESOURCES_DIR "/resources"
 
-#define TIME_CYCLE 5
+#define TIME_CYCLE 10
 
 int WebServer::_sv[2] = {0};
 
@@ -75,6 +75,8 @@ void WebServer::start()
     LOG_DEBUG("timerr setting...");
     // timer setting
     _tim = new Timer();
+    std::function<void(size_t)> timCb = std::bind(&WebServer::deleteConnection, this, std::placeholders::_1);
+    _tim->SetTimeoutCallback(timCb);
 
     // sockpair
     errif(socketpair(AF_UNIX, SOCK_STREAM, 0, _sv) == -1, "socketpair create failed");
@@ -94,10 +96,10 @@ void WebServer::start()
 
     // add signal
     _addSig(SIGALRM, _sig_handler, false);
-    _addSig(SIGINT, _sig_handler, false);
+    // _addSig(SIGINT, _sig_handler, false);
 
     // trigger SIGALRM cyclically
-    // alarm(TIME_CYCLE);
+    alarm(TIME_CYCLE);
 
     // 主Reactor循环
     _mainReactor->loop();
@@ -124,9 +126,7 @@ void WebServer::handleConnection(Socket *sock)
         // 添加至Map
         _map[sock->GetFd()] = conn;
         // add to timer
-        // _tim->Add(sock->GetFd(), 1000, [this](size_t id){
-        //     this->deleteConnection(id);
-        // });
+        _tim->Add(sock->GetFd(), 10000);
     }
 }
 
@@ -137,14 +137,12 @@ void WebServer::handleConnection(Socket *sock)
  */
 void WebServer::deleteConnection(size_t fd)
 {
-    // if (sock == nullptr)
-    //     return; // solve segmentation fault.--------wait for fix
-    // int fd = sock->GetFd();
     if (fd != -1)
     {
         auto it = _map.find(fd);
         if (it != _map.end())
         {
+            LOG_DEBUG("client disconnected: %d", fd);
             Connection *conn = _map[fd];
             _map.erase(fd);
             delete conn;
@@ -207,5 +205,5 @@ void WebServer::_handleTimerEvent() {
         }
     }
     // trigger SIGALRM cyclically
-    // alarm(TIME_CYCLE);
+    alarm(TIME_CYCLE);
 }
